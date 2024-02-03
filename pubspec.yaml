@@ -32,6 +32,7 @@ dependencies:
     sdk: flutter
   cupertino_icons: ^1.0.2
   nes_ui: ^0.14.0
+  firedart: ^0.9.7
 
 dev_dependencies:
   flutter_test:

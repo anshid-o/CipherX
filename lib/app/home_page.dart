@@ -1,12 +1,15 @@
-// ignore_for_file: must_be_immutable
+// ignore_for_file: must_be_immutable, use_build_context_synchronously, prefer_final_fields
 
 import 'dart:async';
+// import 'dart:js_interop';
 
+import 'package:cypher_x/core.dart';
+import 'package:firedart/firestore/firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:nes_ui/nes_ui.dart';
 
 class HomePage extends StatefulWidget {
-  HomePage({super.key});
+  const HomePage({super.key});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -25,11 +28,14 @@ class _HomePageState extends State<HomePage> {
     'When the appropriate time arrives, the hint will be provided here..'
   ];
 
+  Firestore firestore = Firestore.initialize(projectId);
+
+  List<Map<String, dynamic>> _answers = [];
+
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
-
+    getdata();
     addHints();
   }
 
@@ -120,50 +126,54 @@ class _HomePageState extends State<HomePage> {
                         width: (size.width - 232) * .4,
                         child: Center(
                           child: NesButton(
-                              type: NesButtonType.warning,
-                              onPressed: () async {
-                                bool x = false;
-                                await NesConfirmDialog.show(
-                                        context: context,
-                                        confirmLabel: 'Yes',
-                                        cancelLabel: 'No',
-                                        message: 'Are you sure?')
-                                    .then((value) => x = value!);
+                            type: NesButtonType.warning,
+                            onPressed: () async {
+                              bool x = false;
+                              await NesConfirmDialog.show(
+                                      context: context,
+                                      confirmLabel: 'Yes',
+                                      cancelLabel: 'No',
+                                      message: 'Are you sure?')
+                                  .then((value) => x = value!);
 
-                                if (x) {
-                                  NesSnackbar.show(
-                                    type: NesSnackbarType.success,
-                                    context,
-                                    text:
-                                        'You successfully captured the flag $_currentLevel. Congrats',
-                                  );
-                                  await Future.delayed(
-                                      const Duration(seconds: 4));
-                                  setState(() {
-                                    _currentLevel += 1;
-                                  });
-                                  await NesDialog.show(
-                                    context: context,
-                                    builder: (context) {
-                                      return Text(
-                                          'Hello.. Welcome to stage $_currentLevel. Be ready for the challenge');
-                                    },
-                                  );
-                                  changeHeading();
-                                  String defhint = _hints[0];
-                                  _hints.clear();
-                                  _hints.add(defhint);
+                              if (x &&
+                                  _password.text ==
+                                      _answers[_currentLevel - 1]['password']) {
+                                NesSnackbar.show(
+                                  type: NesSnackbarType.success,
+                                  context,
+                                  text:
+                                      'You successfully captured the flag $_currentLevel. Congrats',
+                                );
+                                await Future.delayed(
+                                    const Duration(seconds: 4));
+                                setState(() {
+                                  _currentLevel += 1;
+                                });
+                                await NesDialog.show(
+                                  context: context,
+                                  builder: (context) {
+                                    return Text(
+                                        'Hello.. Welcome to stage $_currentLevel. Be ready for the challenge');
+                                  },
+                                );
+                                _password.text = '';
+                                changeHeading();
+                                String defhint = _hints[0];
+                                _hints.clear();
+                                _hints.add(defhint);
 
-                                  addHints();
-                                }
-                              },
-                              child: const Text('Submit')),
+                                addHints();
+                              }
+                            },
+                            child: const Text('Submit'),
+                          ),
                         ),
-                      )
+                      ),
                     ],
                   ),
                 ),
-                Container(
+                SizedBox(
                   height: size.height - 96,
                   width: (size.width - 232) * .4,
                   child: Column(
@@ -234,7 +244,7 @@ class _HomePageState extends State<HomePage> {
 
   List<Widget> buildHints() {
     List<Widget> x = [];
-    _hints.forEach((element) {
+    for (var element in _hints) {
       Padding p = Padding(
         padding: const EdgeInsets.all(20.0),
         child: Text(
@@ -243,7 +253,7 @@ class _HomePageState extends State<HomePage> {
         ),
       );
       x.add(p);
-    });
+    }
     return x;
   }
 
@@ -261,5 +271,14 @@ class _HomePageState extends State<HomePage> {
         }
       });
     }
+  }
+
+  void getdata() async {
+    await firestore.collection('flags').orderBy('no').get().then((value) {
+      for (var element in value) {
+        _answers.add({'no': element['no'], 'password': element['password']});
+      }
+    });
+    print(_answers);
   }
 }
