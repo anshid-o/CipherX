@@ -2,7 +2,8 @@
 
 import 'dart:async';
 // import 'dart:js_interop';
-
+import 'package:window_manager/window_manager.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:cypher_x/core.dart';
 import 'package:firedart/firestore/firestore.dart';
 import 'package:flutter/material.dart';
@@ -15,10 +16,11 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with WindowListener {
+  ValueNotifier<Duration> _eventTime = ValueNotifier(const Duration(hours: 3));
   List<int> levels = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
   int k = 1;
-  int _currentLevel = 1;
+  final ValueNotifier<int> _currentLevel = ValueNotifier(1);
   String _heading =
       'Hello guys, welcome to bubhbh huesh h rhch hsr  h sh. hshbh zhbhz ucncc dk.';
 
@@ -29,14 +31,78 @@ class _HomePageState extends State<HomePage> {
   ];
 
   Firestore firestore = Firestore.initialize(projectId);
-
+  // final ValueNotifier<bool> _isPlayed = ValueNotifier(false);
+  bool _isPlayed = false;
   List<Map<String, dynamic>> _answers = [];
 
   @override
   void initState() {
     super.initState();
     getdata();
+    windowManager.addListener(this);
+    _init();
     addHints();
+    updateTime();
+  }
+
+  void _init() async {
+    // Add this line to override the default close handler
+    await windowManager.setPreventClose(true);
+    setState(() {});
+  }
+
+  updateTime() async {
+    while (!_eventTime.value.isNegative) {
+      await Future.delayed(const Duration(seconds: 1));
+      _eventTime.value -= const Duration(seconds: 1);
+    }
+  }
+
+  @override
+  void onWindowClose() async {
+    // TODO: implement onWindowClose
+
+    bool _isPreventClose = await windowManager.isPreventClose();
+    if (_isPreventClose) {
+      showDialog(
+        context: context,
+        builder: (_) {
+          return AlertDialog(
+            title: const Text('Are you sure you want to close this window?'),
+            actions: [
+              TextButton(
+                child: const Text('No'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+              TextButton(
+                child: const Text('Yes'),
+                onPressed: () async {
+                  Navigator.of(context).pop();
+                  NesInputDialog.show(
+                          context: context,
+                          inputLabel: 'Submit',
+                          cancelLabel: 'cancel',
+                          message: 'What is CipherX password?')
+                      .then((value) async {
+                    if (value == 'CipherX@2024CUSAT') {
+                      await windowManager.destroy();
+                    } else {
+                      NesSnackbar.show(context,
+                          type: NesSnackbarType.error,
+                          text:
+                              'You are unable to exit the game until it reaches its conclusion.');
+                    }
+                  });
+                },
+              ),
+            ],
+          );
+        },
+      );
+    }
+    super.onWindowClose();
   }
 
   @override
@@ -85,9 +151,14 @@ class _HomePageState extends State<HomePage> {
                       ),
                       Padding(
                         padding: const EdgeInsets.all(15.0),
-                        child: Text(
-                          'Stage $_currentLevel',
-                          style: const TextStyle(fontSize: 20),
+                        child: ValueListenableBuilder(
+                          valueListenable: _currentLevel,
+                          builder: (context, value, child) {
+                            return Text(
+                              'Stage ${_currentLevel.value}',
+                              style: const TextStyle(fontSize: 20),
+                            );
+                          },
                         ),
                       ),
                       const Padding(
@@ -114,7 +185,7 @@ class _HomePageState extends State<HomePage> {
                           child: TextFormField(
                             controller: _password,
                             decoration: const InputDecoration(
-                              hintText: 'CiphereX{ password }',
+                              hintText: 'CipherX{ password }',
                             ),
                           ),
                         ),
@@ -138,23 +209,29 @@ class _HomePageState extends State<HomePage> {
 
                               if (x &&
                                   _password.text ==
-                                      _answers[_currentLevel - 1]['password']) {
+                                      _answers[_currentLevel.value - 1]
+                                          ['password']) {
                                 NesSnackbar.show(
                                   type: NesSnackbarType.success,
                                   context,
                                   text:
-                                      'You successfully captured the flag $_currentLevel. Congrats',
+                                      'You successfully captured the flag ${_currentLevel.value}. Congrats',
                                 );
                                 await Future.delayed(
                                     const Duration(seconds: 4));
-                                setState(() {
-                                  _currentLevel += 1;
-                                });
+
+                                _currentLevel.value += 1;
+
                                 await NesDialog.show(
                                   context: context,
                                   builder: (context) {
-                                    return Text(
-                                        'Hello.. Welcome to stage $_currentLevel. Be ready for the challenge');
+                                    return ValueListenableBuilder(
+                                      valueListenable: _currentLevel,
+                                      builder: (context, value, child) {
+                                        return Text(
+                                            'Hello.. Welcome to stage ${_currentLevel.value}. Be ready for the challenge');
+                                      },
+                                    );
                                   },
                                 );
                                 _password.text = '';
@@ -164,12 +241,55 @@ class _HomePageState extends State<HomePage> {
                                 _hints.add(defhint);
 
                                 addHints();
+                              } else {
+                                NesSnackbar.show(context,
+                                    type: NesSnackbarType.error,
+                                    text: 'You entered wrong password');
                               }
                             },
                             child: const Text('Submit'),
                           ),
                         ),
                       ),
+                      NesButton.icon(
+                        type: NesButtonType.primary,
+                        icon: NesIcons.audio,
+                        onPressed: () {
+                          if (_isPlayed == false) {
+                            final player = AudioPlayer();
+                            player.play(AssetSource('UI.mp3'));
+                          }
+                          _isPlayed = true;
+                        },
+                      ),
+                      ValueListenableBuilder(
+                          valueListenable: _eventTime,
+                          builder: (context, value, child) {
+                            int hours = _eventTime.value.inHours;
+                            int minutes = (_eventTime.value.inMinutes % 60);
+                            int seconds = (_eventTime.value.inSeconds % 60);
+
+                            String formattedTime = '';
+
+                            if (hours > 0) {
+                              formattedTime +=
+                                  '${hours.toString().padLeft(2, '0')}:';
+                            }
+
+                            formattedTime +=
+                                '${minutes.toString().padLeft(2, '0')}:';
+                            formattedTime +=
+                                '${seconds.toString().padLeft(2, '0')}';
+
+                            return Center(
+                              child: NesButton.iconText(
+                                text: formattedTime,
+                                type: NesButtonType.primary,
+                                icon: NesIcons.hourglassMiddle,
+                                onPressed: () {},
+                              ),
+                            );
+                          })
                     ],
                   ),
                 ),
@@ -212,7 +332,7 @@ class _HomePageState extends State<HomePage> {
   void changeHeading() {
     return setState(() {
       _heading =
-          'Stage $_currentLevel is about hdbxhud dhu x xex e e.You can cbcnr';
+          'Stage ${_currentLevel.value} is about hdbxhud dhu x xex e e.You can cbcnr';
     });
   }
 
@@ -259,7 +379,7 @@ class _HomePageState extends State<HomePage> {
 
   addHints() {
     if (_hints.length < 5) {
-      Timer.periodic(const Duration(seconds: 3), (timer) {
+      Timer.periodic(const Duration(seconds: 15), (timer) {
         setState(() {
           if (_hints.length < 5) {
             _hints.add('hint ${_hints.length + 1}');
@@ -279,6 +399,5 @@ class _HomePageState extends State<HomePage> {
         _answers.add({'no': element['no'], 'password': element['password']});
       }
     });
-    print(_answers);
   }
 }
