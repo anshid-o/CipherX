@@ -1,7 +1,8 @@
-import 'package:cypher_x/app/home_page.dart';
 import 'package:flutter/material.dart';
 import 'package:nes_ui/nes_ui.dart';
 import 'package:window_manager/window_manager.dart';
+
+import 'app/entry_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,7 +33,7 @@ class MyApp extends StatelessWidget {
       title: 'Flutter Demo',
       theme: flutterNesTheme(
           brightness: Brightness.dark, primaryColor: Colors.lime),
-      home: HomePage(),
+      home: EntryPage(),
     );
   }
 }
