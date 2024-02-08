@@ -18,7 +18,8 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> with WindowListener {
-  ValueNotifier<Duration> _eventTime = ValueNotifier(const Duration(hours: 3));
+  ValueNotifier<Duration> _eventTime =
+      ValueNotifier(const Duration(minutes: 10, seconds: 34));
   List<int> levels = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
   int k = 1;
 
@@ -47,6 +48,7 @@ class _HomePageState extends State<HomePage> with WindowListener {
   ];
   Firestore firestore = Firestore.initialize(projectId);
 
+  final ValueNotifier<int> _isLastTime = ValueNotifier(0);
   final ValueNotifier<int> _currentHintCount = ValueNotifier(0);
   bool _isPlayed = false;
   final List<Map<String, dynamic>> _flags = [];
@@ -69,6 +71,17 @@ class _HomePageState extends State<HomePage> with WindowListener {
 
   updateTime() async {
     while (!_eventTime.value.isNegative) {
+      if (_eventTime.value.inMinutes < 10) {
+        _isLastTime.value = 1;
+      }
+      if (_eventTime.value.inSeconds <= 1) {
+        _isLastTime.value = 2;
+        firestore.collection('results').add({
+          'name': widget.teamName,
+          'points': _currentPonts.value,
+          'time': '3 Hourse'
+        });
+      }
       await Future.delayed(const Duration(seconds: 1));
       _eventTime.value -= const Duration(seconds: 1);
     }
@@ -274,7 +287,7 @@ class _HomePageState extends State<HomePage> with WindowListener {
                                                   textStyle:
                                                       TextStyle(fontSize: 20),
                                                   text:
-                                                      'Congratulations on completing the game within the impressive time of ${_eventTime.value.inHours} hour, ${_eventTime.value.inMinutes % 60} minutes, and ${_eventTime.value.inSeconds % 60} seconds, earning a total of ${_currentPonts.value} points! Your determination and skill have truly paid off. Well done!',
+                                                      'Congratulations on completing the game within the impressive time of ${0 - _eventTime.value.inHours} hour, ${10 - _eventTime.value.inMinutes % 60} minutes, and ${30 - _eventTime.value.inSeconds % 60} seconds, earning a total of ${_currentPonts.value} points! Your determination and skill have truly paid off. Well done!',
                                                 );
                                               },
                                             );
@@ -340,6 +353,200 @@ class _HomePageState extends State<HomePage> with WindowListener {
                                   _isPlayed = true;
                                 },
                               ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(
+                          height: size.height - 96,
+                          width: (size.width - 232) * .4,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const SizedBox(
+                                    height: 10,
+                                  ),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      Padding(
+                                        padding: const EdgeInsets.fromLTRB(
+                                            0, 10, 20, 10),
+                                        child: ValueListenableBuilder(
+                                          valueListenable: _currentPonts,
+                                          builder: (context, value, child) {
+                                            return Text(
+                                              'Available points : ${_currentPonts.value}',
+                                              style: TextStyle(
+                                                fontSize: 18,
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      )
+                                    ],
+                                  ),
+
+                                  const Padding(
+                                    padding: EdgeInsets.all(20.0),
+                                    child: Text(
+                                      'Hint section',
+                                      style: TextStyle(
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.bold,
+                                          decoration: TextDecoration.underline),
+                                    ),
+                                  ),
+                                  const SizedBox(
+                                    height: 20,
+                                  ),
+                                  ValueListenableBuilder(
+                                    valueListenable: _currentHintCount,
+                                    builder: (context, value, child) {
+                                      if (_currentHintCount.value == 0) {
+                                        return Padding(
+                                          padding: const EdgeInsets.fromLTRB(
+                                              30, 0, 0, 0),
+                                          child: NesButton(
+                                            onPressed: () async {
+                                              bool x = false;
+                                              await NesConfirmDialog.show(
+                                                      context: context,
+                                                      confirmLabel: 'Yes',
+                                                      cancelLabel: 'No',
+                                                      message:
+                                                          'Are you sure? you are going to lose ${(((_currentLevel.value == 1 ? 100 : _rewardList[_currentLevel.value - 1]) / 10) * 4).ceil()} points for 1 hint')
+                                                  .then((value) => x = value!);
+
+                                              if (x) {
+                                                _currentHintCount.value =
+                                                    _currentHintCount.value + 1;
+                                                _currentPonts
+                                                    .value -= ((_currentLevel
+                                                                    .value ==
+                                                                1
+                                                            ? 100
+                                                            : _rewardList[
+                                                                _currentLevel
+                                                                        .value -
+                                                                    1]) /
+                                                        10 *
+                                                        4)
+                                                    .ceil();
+                                              }
+                                            },
+                                            type: NesButtonType.warning,
+                                            child: Text(
+                                                'Unlock 1 Hint for ${(((_currentLevel.value == 1 ? 100 : _rewardList[_currentLevel.value - 1]) / 10) * 4).ceil()} points'),
+                                          ),
+                                        );
+                                      } else if (_currentHintCount.value == 1) {
+                                        return Column(
+                                          children: [
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.all(20.0),
+                                              child: Text(
+                                                _flags[_currentLevel.value - 1]
+                                                    ['h1'],
+                                                style: const TextStyle(
+                                                    fontSize: 16),
+                                              ),
+                                            ),
+                                            NesButton(
+                                              onPressed: () async {
+                                                if (_currentPonts.value >=
+                                                    (((_currentLevel.value == 1
+                                                                    ? 100
+                                                                    : _rewardList[
+                                                                        _currentLevel.value -
+                                                                            1]) /
+                                                                10) *
+                                                            6)
+                                                        .ceil()) {
+                                                  bool x = false;
+                                                  await NesConfirmDialog.show(
+                                                          context: context,
+                                                          confirmLabel: 'Yes',
+                                                          cancelLabel: 'No',
+                                                          message:
+                                                              'Are you sure? you are going to lose ${(((_currentLevel.value == 1 ? 100 : _rewardList[_currentLevel.value - 1]) / 10) * 6).ceil()} points for 1 hint')
+                                                      .then((value) =>
+                                                          x = value!);
+
+                                                  if (x) {
+                                                    _currentHintCount.value =
+                                                        _currentHintCount
+                                                                .value +
+                                                            1;
+                                                    _currentPonts
+                                                        .value -= (((_currentLevel
+                                                                            .value ==
+                                                                        1
+                                                                    ? 100
+                                                                    : _rewardList[
+                                                                        _currentLevel.value -
+                                                                            1]) /
+                                                                10) *
+                                                            6)
+                                                        .ceil();
+                                                  }
+                                                } else {
+                                                  NesSnackbar.show(context,
+                                                      type:
+                                                          NesSnackbarType.error,
+                                                      text:
+                                                          'You have no enough points');
+                                                }
+                                              },
+                                              type: NesButtonType.warning,
+                                              child: Text(
+                                                  'Unlock new Hint for ${((_currentReward.value / 10) * 6).ceil()} points'),
+                                            )
+                                          ],
+                                        );
+                                      } else {
+                                        return Column(
+                                          children: [
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.all(20.0),
+                                              child: Text(
+                                                _flags[_currentLevel.value - 1]
+                                                    ['h1'],
+                                                style: const TextStyle(
+                                                    fontSize: 16),
+                                              ),
+                                            ),
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.all(20.0),
+                                              child: Text(
+                                                _flags[_currentLevel.value - 1]
+                                                    ['h2'],
+                                                style: const TextStyle(
+                                                    fontSize: 16),
+                                              ),
+                                            ),
+                                          ],
+                                        );
+                                      }
+                                    },
+                                  ),
+
+                                  // SizedBox(
+                                  //   height: size.height - 406,
+                                  //   child: ListView(
+                                  //     children: buildHints(),
+                                  //   ),
+                                  // ),
+                                  const SizedBox(
+                                    height: 40,
+                                  ),
+                                ],
+                              ),
                               ValueListenableBuilder(
                                   valueListenable: _eventTime,
                                   builder: (context, value, child) {
@@ -362,196 +569,61 @@ class _HomePageState extends State<HomePage> with WindowListener {
                                         '${seconds.toString().padLeft(2, '0')}';
 
                                     return Center(
-                                      child: NesButton.iconText(
-                                        text: formattedTime,
-                                        type: NesButtonType.primary,
-                                        icon: NesIcons.hourglassMiddle,
-                                        onPressed: () {},
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(30.0),
+                                        child: NesTooltip(
+                                            arrowDirection:
+                                                NesTooltipArrowDirection.top,
+                                            arrowPlacement:
+                                                NesTooltipArrowPlacement.right,
+                                            message:
+                                                'The challenge will conclude upon the expiration of this time period',
+                                            child: ValueListenableBuilder(
+                                              valueListenable: _isLastTime,
+                                              builder: (context, value, child) {
+                                                return NesContainer(
+                                                    width: 300,
+                                                    child: Row(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .spaceEvenly,
+                                                      children: [
+                                                        Text(
+                                                          formattedTime,
+                                                          style: TextStyle(
+                                                              fontSize: 20,
+                                                              fontWeight: _isLastTime
+                                                                          .value ==
+                                                                      1
+                                                                  ? FontWeight
+                                                                      .bold
+                                                                  : FontWeight
+                                                                      .w500,
+                                                              color: _isLastTime
+                                                                          .value ==
+                                                                      1
+                                                                  ? Colors
+                                                                      .redAccent
+                                                                  : Colors
+                                                                      .white),
+                                                        ),
+                                                        NesHourglassLoadingIndicator(),
+                                                      ],
+                                                    ));
+                                              },
+                                            )
+
+                                            // NesButton.iconText(
+                                            //   text: formattedTime,
+
+                                            //   type: NesButtonType.primary,
+                                            //   icon: NesIcons.hourglassMiddle,
+                                            //   onPressed: () {},
+                                            // ),
+                                            ),
                                       ),
                                     );
-                                  })
-                            ],
-                          ),
-                        ),
-                        SizedBox(
-                          height: size.height - 96,
-                          width: (size.width - 232) * .4,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(
-                                height: 10,
-                              ),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.fromLTRB(
-                                        0, 10, 20, 10),
-                                    child: ValueListenableBuilder(
-                                      valueListenable: _currentPonts,
-                                      builder: (context, value, child) {
-                                        return Text(
-                                          'Available points : ${_currentPonts.value}',
-                                          style: TextStyle(
-                                            fontSize: 18,
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  )
-                                ],
-                              ),
-
-                              const Padding(
-                                padding: EdgeInsets.all(20.0),
-                                child: Text(
-                                  'Hint section',
-                                  style: TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold,
-                                      decoration: TextDecoration.underline),
-                                ),
-                              ),
-                              const SizedBox(
-                                height: 20,
-                              ),
-                              ValueListenableBuilder(
-                                valueListenable: _currentHintCount,
-                                builder: (context, value, child) {
-                                  if (_currentHintCount.value == 0) {
-                                    return Padding(
-                                      padding: const EdgeInsets.fromLTRB(
-                                          30, 0, 0, 0),
-                                      child: NesButton(
-                                        onPressed: () async {
-                                          bool x = false;
-                                          await NesConfirmDialog.show(
-                                                  context: context,
-                                                  confirmLabel: 'Yes',
-                                                  cancelLabel: 'No',
-                                                  message:
-                                                      'Are you sure? you are going to lose ${(((_currentLevel.value == 1 ? 100 : _rewardList[_currentLevel.value - 1]) / 10) * 4).ceil()} points for 1 hint')
-                                              .then((value) => x = value!);
-
-                                          if (x) {
-                                            _currentHintCount.value =
-                                                _currentHintCount.value + 1;
-                                            _currentPonts.value -=
-                                                ((_currentLevel.value == 1
-                                                            ? 100
-                                                            : _rewardList[
-                                                                _currentLevel
-                                                                        .value -
-                                                                    1]) /
-                                                        10 *
-                                                        4)
-                                                    .ceil();
-                                          }
-                                        },
-                                        type: NesButtonType.warning,
-                                        child: Text(
-                                            'Unlock 1 Hint for ${(((_currentLevel.value == 1 ? 100 : _rewardList[_currentLevel.value - 1]) / 10) * 4).ceil()} points'),
-                                      ),
-                                    );
-                                  } else if (_currentHintCount.value == 1) {
-                                    return Column(
-                                      children: [
-                                        Padding(
-                                          padding: const EdgeInsets.all(20.0),
-                                          child: Text(
-                                            _flags[_currentLevel.value - 1]
-                                                ['h1'],
-                                            style:
-                                                const TextStyle(fontSize: 16),
-                                          ),
-                                        ),
-                                        NesButton(
-                                          onPressed: () async {
-                                            if (_currentPonts.value >=
-                                                (((_currentLevel.value == 1
-                                                                ? 100
-                                                                : _rewardList[
-                                                                    _currentLevel
-                                                                            .value -
-                                                                        1]) /
-                                                            10) *
-                                                        6)
-                                                    .ceil()) {
-                                              bool x = false;
-                                              await NesConfirmDialog.show(
-                                                      context: context,
-                                                      confirmLabel: 'Yes',
-                                                      cancelLabel: 'No',
-                                                      message:
-                                                          'Are you sure? you are going to lose ${(((_currentLevel.value == 1 ? 100 : _rewardList[_currentLevel.value - 1]) / 10) * 6).ceil()} points for 1 hint')
-                                                  .then((value) => x = value!);
-
-                                              if (x) {
-                                                _currentHintCount.value =
-                                                    _currentHintCount.value + 1;
-                                                _currentPonts
-                                                    .value -= (((_currentLevel
-                                                                        .value ==
-                                                                    1
-                                                                ? 100
-                                                                : _rewardList[
-                                                                    _currentLevel
-                                                                            .value -
-                                                                        1]) /
-                                                            10) *
-                                                        6)
-                                                    .ceil();
-                                              }
-                                            } else {
-                                              NesSnackbar.show(context,
-                                                  type: NesSnackbarType.error,
-                                                  text:
-                                                      'You have no enough points');
-                                            }
-                                          },
-                                          type: NesButtonType.warning,
-                                          child: Text(
-                                              'Unlock new Hint for ${((_currentReward.value / 10) * 6).ceil()} points'),
-                                        )
-                                      ],
-                                    );
-                                  } else {
-                                    return Column(
-                                      children: [
-                                        Padding(
-                                          padding: const EdgeInsets.all(20.0),
-                                          child: Text(
-                                            _flags[_currentLevel.value - 1]
-                                                ['h1'],
-                                            style:
-                                                const TextStyle(fontSize: 16),
-                                          ),
-                                        ),
-                                        Padding(
-                                          padding: const EdgeInsets.all(20.0),
-                                          child: Text(
-                                            _flags[_currentLevel.value - 1]
-                                                ['h2'],
-                                            style:
-                                                const TextStyle(fontSize: 16),
-                                          ),
-                                        ),
-                                      ],
-                                    );
-                                  }
-                                },
-                              ),
-
-                              // SizedBox(
-                              //   height: size.height - 406,
-                              //   child: ListView(
-                              //     children: buildHints(),
-                              //   ),
-                              // ),
-                              const SizedBox(
-                                height: 40,
-                              ),
+                                  }),
                             ],
                           ),
                         ),
@@ -573,7 +645,7 @@ class _HomePageState extends State<HomePage> with WindowListener {
 
   buildStages() {
     List<Widget> x = [];
-    for (var element in levels) {
+    for (var element in levels.sublist(0, _flags.length)) {
       x.add(Padding(
         padding: const EdgeInsets.all(8.0),
         child: NesWindow(
