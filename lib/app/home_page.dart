@@ -2,9 +2,10 @@
 
 import 'dart:async';
 
+// import 'package:cypher_x/app/intro_page.dart';
 import 'package:flutter/foundation.dart';
 import 'package:window_manager/window_manager.dart';
-import 'package:audioplayers/audioplayers.dart';
+// import 'package:audioplayers/audioplayers.dart';
 import 'package:cypher_x/core.dart';
 import 'package:firedart/firestore/firestore.dart';
 import 'package:flutter/material.dart';
@@ -342,17 +343,22 @@ class _HomePageState extends State<HomePage> with WindowListener {
                                   ),
                                 ),
                               ),
-                              NesButton.icon(
-                                type: NesButtonType.primary,
-                                icon: NesIcons.audio,
-                                onPressed: () {
-                                  if (_isPlayed == false) {
-                                    final player = AudioPlayer();
-                                    player.play(AssetSource('UI.mp3'));
-                                  }
-                                  _isPlayed = true;
-                                },
-                              ),
+                              // NesButton.icon(
+                              //   type: NesButtonType.primary,
+                              //   icon: NesIcons.audio,
+                              //   onPressed: () {
+                              //     // Navigator.push(context, MaterialPageRoute(
+                              //     //   builder: (context) {
+                              //     //     return MyAppPage();
+                              //     //   },
+                              //     // ));
+                              //     // if (_isPlayed == false) {
+                              //     //   final player = AudioPlayer();
+                              //     //   player.play(AssetSource('UI.mp3'));
+                              //     // }
+                              //     // _isPlayed = true;
+                              //   },
+                              // ),
                             ],
                           ),
                         ),

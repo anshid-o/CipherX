@@ -1,3 +1,4 @@
+import 'package:cypher_x/app/intro_page.dart';
 import 'package:flutter/material.dart';
 import 'package:nes_ui/nes_ui.dart';
 import 'package:window_manager/window_manager.dart';
@@ -33,7 +34,7 @@ class MyApp extends StatelessWidget {
       title: 'Flutter Demo',
       theme: flutterNesTheme(
           brightness: Brightness.dark, primaryColor: Colors.lime),
-      home: EntryPage(),
+      home: IntroPage(),
     );
   }
 }

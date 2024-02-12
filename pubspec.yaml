@@ -33,8 +33,10 @@ dependencies:
   cupertino_icons: ^1.0.2
   nes_ui: ^0.14.0
   firedart: ^0.9.7
-  audioplayers: ^5.2.1
+  # audioplayers: ^5.2.1
   window_manager: ^0.3.8
+  video_player_win: ^2.3.4
+  # video_player: ^2.7.0
 
 dev_dependencies:
   flutter_test:
